@@ -1,7 +1,7 @@
 from slime.mould import Mould
 from slime.city import City
 
-def main():
+# def main():
 
     # sm.animate(frames=10, interval=100, filename="output/2_sources.gif")
     #
@@ -14,5 +14,5 @@ def main():
     # sm.animate(frames=400, interval=100, filename="output/4_sources.gif")
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

@@ -8,12 +8,13 @@ from slime.cell import Cell
 
 
 class City:
-    def __init__(self, city_shape: tuple, foods: pd.DataFrame, mould_shape: tuple,
-                 coverage: float, decay: float, sensor_offset: int):
+    def __init__(self, city_shape: tuple, foods: pd.DataFrame, mould_shape: tuple, init_mould_coverage: float,
+                 decay: float, sensor_offset: int):
         self.lattice = self.initialise_city(city_shape)
         self.all_foods = {}
+        self.all_foods_idx = []
         self.initialise_food(foods)
-        self.mould = self.initialise_slime_mould(self, mould_shape, coverage, decay, sensor_offset)
+        self.mould = self.initialise_slime_mould(self, mould_shape, init_mould_coverage, decay, sensor_offset)
 
     @staticmethod
     def initialise_city(city_shape):
@@ -34,17 +35,24 @@ class City:
                     food_idx = (idx[0] + y, idx[1] + x)
                     food = FoodCell(food_id=i, food_idx=food_idx, capacity=10*value)
                     self.lattice[food_idx] = food
+                    self.all_foods_idx.append(food_idx)
                     if i not in self.all_foods:
                         self.all_foods[i] = [food_idx]
                     else:
                         self.all_foods[i].append(food_idx)
 
-    def get_foods(self, food_id):
-        return self.all_foods.get(food_id)
+    def get_foods_idx(self):
+        return self.all_foods_idx
 
     @staticmethod
-    def initialise_slime_mould(city, mould_shape, coverage, decay, sensor_offset):
-        return Mould(city, mould_shape, coverage, decay, sensor_offset)
+    def initialise_slime_mould(city, mould_shape, init_mould_coverage, decay, sensor_offset):
+        return Mould(city, mould_shape, init_mould_coverage, decay, sensor_offset)
+
+    def get_lattice(self):
+        return self.lattice
+
+    def set_lattice(self, idx, obj):
+        self.lattice[idx] = obj
 
     @staticmethod
     def pheromones(lattice):

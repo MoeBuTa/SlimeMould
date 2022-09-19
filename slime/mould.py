@@ -1,45 +1,42 @@
-import random
-
 import numpy as np
-from slime.slime_cell import SlimeCell
+import random
+from slime.slime import SlimeCell
+from slime.cell import Cell
 
 
 class Mould:
-    def __init__(self, city, mould_shape: tuple, coverage: float, decay: float, sensor_offset: int):
-        # super().__init__(shape=mould_shape)
+    def __init__(self, city, mould_shape: tuple, init_mould_coverage: float, decay: float, sensor_offset: int):
         self.city = city
-        self.coverage = coverage
         self.decay = decay
         self.sensor_offset = sensor_offset
         self.slime_cells = {}
-        self.reached_foods = {}
         self.mould_shape = mould_shape
-        self.initialise(city, mould_shape, coverage)
+        self.initialise(city, mould_shape, init_mould_coverage)
 
     def remove_slime_cell(self, idx):
-        self.city.lattice[idx] = None
+        self.city.set_lattice(idx, Cell())
         del self.slime_cells[idx]
         return False
 
-    def slime_cell_generator(self, idx, coverage=0.6, decay=1):
-        """
-        "coverage" chance of successfully generate a slime cell
-        """
-        slime_cell = None
-        direction = np.random.choice(a=9, p=[1 - coverage] + [coverage / 8] * 8)
-        if direction > 0:
-            pheromone = 2. * decay if direction > 0 else 0.
-            slime_cell = SlimeCell(idx=idx, direction=direction, pheromone=pheromone, mould=self, city=self.city)
-            self.slime_cells[slime_cell.idx] = slime_cell
+    def update_slime_cell(self, idx, slime: SlimeCell):
+        self.slime_cells[idx] = slime
+        self.city.set_lattice(idx, slime)
+
+    def slime_cell_generator(self, idx, decay=0):
+        pheromone = 2. * (1 - decay)
+        direction = random.randint(1, 8)
+        slime_cell = SlimeCell(idx=idx, pheromone=pheromone, direction=direction, mould=self, city=self.city)
+        self.slime_cells[slime_cell.idx] = slime_cell
         return slime_cell
 
-    def initialise(self, city, mould_shape, coverage):
+    def initialise(self, city, mould_shape, init_mould_coverage):
         row = mould_shape[0] // 2
         col = mould_shape[1] // 2
         for x in range(len(city.lattice) // 2 - row, len(city.lattice) // 2 + row):
             for y in range(len(city.lattice[x]) // 2 - col, len(city.lattice[x]) // 2 + col):
-                slime_cell = self.slime_cell_generator(idx=(x, y), coverage=coverage)
-                city.lattice[x][y] = slime_cell
+                if random.random() < init_mould_coverage and (x, y) not in self.city.get_foods_idx():
+                    slime_cell = self.slime_cell_generator(idx=(x, y))
+                    city.lattice[x][y] = slime_cell
 
     def evolve(self):
         """
@@ -49,27 +46,6 @@ class Mould:
         :return:
         """
         print(len(self.slime_cells))
-        keys = list(self.slime_cells.keys())
-        for k in keys:
-            cell = self.slime_cells.get(k)
-            if cell.diffusion(coverage=self.coverage, decay=self.decay):
-                new_cell = cell.motor()
-                if new_cell is None:
-                    continue
-                else:
-                    cell.sensory(self.sensor_offset)
-            else:
-                continue
-
-        # foods = list(self.city.all_foods.keys())
-        # for food_id in foods:
-        #     food = self.city.all_foods.get(food_id)
-        #     for cell in food.get_all_slime_cells():
-        #         if cell.diffusion(decay=self.decay):
-        #             new_cell = cell.motor()
-        #             if new_cell is None:
-        #                 continue
-        #             else:
-        #                 cell.sensory(self.sensor_offset)
-        #         else:
-        #             continue
+        slimes = list(self.slime_cells.values())
+        for cell in slimes:
+            cell.step(self.city.get_lattice(), self.decay, self.sensor_offset)
