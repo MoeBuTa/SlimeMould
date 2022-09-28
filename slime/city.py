@@ -1,3 +1,5 @@
+import networkx as nx
+
 from slime.food import FoodCell
 from slime.mould import Mould
 import numpy as np
@@ -14,6 +16,8 @@ class City:
         self.all_foods = {}
         self.all_foods_idx = []
         self.all_corner_foods = {}
+        self.food_positions = {}
+        self.food_graph = nx.Graph()
         self.initialise_food(foods)
         self.mould = self.initialise_slime_mould(self, mould_shape, init_mould_coverage, decay)
 
@@ -35,8 +39,10 @@ class City:
             if station['type'] is not 'False':
                 self.all_corner_foods[station['type']] = i
 
-            for x in range(value//2):
-                for y in range(value//2):
+            self.food_positions[i] = idx
+
+            for x in range(value // 2):
+                for y in range(value // 2):
                     food_idx = (idx[0] - x, idx[1] - y)
                     food = FoodCell(food_id=i, food_idx=food_idx, food_type=station['type'])
                     self.lattice[food_idx] = food
@@ -49,6 +55,8 @@ class City:
                         self.all_foods[i] = [food]
                     else:
                         self.all_foods[i].append(food)
+
+        self.food_graph.add_nodes_from(self.food_positions)
 
     @staticmethod
     def initialise_slime_mould(city, mould_shape, init_mould_coverage, decay):
@@ -93,10 +101,10 @@ class City:
         data = data.T
 
         return plt.imshow(self.pheromones(self.lattice),
-                              cmap=cmap,
-                              vmin=0, vmax=10,
-                              interpolation='none',
-                              origin='lower', extent=[0, data.shape[1], 0, data.shape[0]])
+                          cmap=cmap,
+                          vmin=0, vmax=10,
+                          interpolation='none',
+                          origin='lower', extent=[0, data.shape[1], 0, data.shape[0]])
 
     def animate(self, frames=10, interval=200, filename=None):
         """
@@ -105,6 +113,7 @@ class City:
         fig = plt.figure(figsize=(10, 15))
 
         im = self.draw_pheromones()
+
         # plt.axis("tight")
         # plt.axis("image")
         # plt.tick_params(which='both',
@@ -139,3 +148,15 @@ class City:
 
     def set_lattice(self, idx, obj):
         self.lattice[idx] = obj
+
+    def get_food_nodes(self):
+        return self.food_graph.nodes()
+
+    def get_food_position(self, food_id):
+        return self.food_positions[food_id]
+
+    def add_food_edge(self, source, target):
+        self.food_graph.add_edge(source, target)
+
+    def get_food_graph(self):
+        return self.food_graph
