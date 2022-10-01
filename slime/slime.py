@@ -1,16 +1,13 @@
-import numpy as np
-from slime.food import FoodCell
 from collections import deque
 from slime.cell import Cell
-import random
 import networkx as nx
 import math
 
-DIFFUSION_THRESHOLD = 2
-DIFFUSION_DECAY_RATE = 2
-MOVING_THRESHOLD = 0.3
-MAX_PH = 6
-MAX_PH_INCREASE_RATE = 1.4
+DIFFUSION_THRESHOLD = 3.5
+DIFFUSION_DECAY_RATE = 1.5
+MOVING_THRESHOLD = 0.1
+MAX_PH = 5
+MAX_PH_INCREASE_STEP = 0.2
 
 
 def get_neighbours(idx):
@@ -82,8 +79,13 @@ class SlimeCell(Cell):
         self.food_path = nx.shortest_path(G=self.city.get_food_graph(), source=min_i, target=target_food_id)
 
     def reset_step_food(self):
-        # reset step food
+        if self.step_food is not None:
+            if len(self.food_path) == 0 and self.step_food == self.mould.get_current_target()[0]:
+                return
+            elif len(self.food_path) != 0 and self.food_path[-1] == self.mould.get_current_target()[0]:
+                return
 
+        # reset step food
         # no food path
         if len(self.food_path) == 0:
             # no reachable food
@@ -98,9 +100,13 @@ class SlimeCell(Cell):
         self.step_food = (step_food_id, self.city.get_food_position(step_food_id))
 
     def sensory(self):
-        self.reset_step_food()
 
-        food_idx = self.step_food[1]
+        target_food = self.mould.get_current_target()
+        food_idx = target_food[1]
+
+        # self.reset_step_food()
+        # food_idx = self.step_food[1]
+
         # (-1, -1)
         if food_idx[0] < self.idx[0] and food_idx[1] < self.idx[1]:
             self.direction = 1
@@ -162,7 +168,7 @@ class SlimeCell(Cell):
 
                 # neighbour cell is a random diffusion cell
                 if self.pheromone > DIFFUSION_THRESHOLD:
-                    self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone, decay=decay)
+                    self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone/DIFFUSION_DECAY_RATE, decay=decay)
                     self.pheromone *= (1 - DIFFUSION_DECAY_RATE * decay)
 
             # neighbor is a slime
@@ -170,15 +176,21 @@ class SlimeCell(Cell):
 
                 # todo: next main diffusion place is a slime cell
                 if neigh == new_idx and self.pheromone > MOVING_THRESHOLD:
-                    neigh_cell.pheromone = neigh_cell.pheromone + self.pheromone / DIFFUSION_DECAY_RATE if (
-                        neigh_cell.pheromone + self.pheromone / DIFFUSION_DECAY_RATE) < neigh_cell.max_ph else neigh_cell.max_ph
-                    self.mould.update_slime_cell(new_idx, neigh_cell)
+                    neigh_increase_ph = neigh_cell.pheromone + self.pheromone / DIFFUSION_DECAY_RATE
+                    if neigh_increase_ph > neigh_cell.max_ph:
+
+                        neigh_cell.pheromone = neigh_cell.max_ph
+
+                    else:
+                        neigh_cell.pheromone = neigh_increase_ph
                     self.pheromone /= DIFFUSION_DECAY_RATE
+
+                    self.mould.update_slime_cell(new_idx, neigh_cell)
 
                 # neighbor bigger than self
                 # increase self-pheromone when find neighbor nearby
-                if neigh_cell.max_ph > self.max_ph and self.reached_food_id is not None and self.max_ph < MAX_PH:
-                    self.max_ph *= MAX_PH_INCREASE_RATE
+                if neigh_cell.pheromone > self.pheromone and self.max_ph < MAX_PH:
+                    self.max_ph += MAX_PH_INCREASE_STEP
                     self.pheromone += (neigh_cell.pheromone / 10)
 
             # add pheromone if current cell find food nearby
@@ -188,16 +200,11 @@ class SlimeCell(Cell):
                 self.pheromone = 8
                 self.max_ph = 8
                 self.reached_food_id = neigh_cell.get_food_id()
+                new_food_id = neigh_cell.get_food_id()
+                if new_food_id not in self.mould.get_reached_food_ids():
+                    self.mould.update_food_connection(new_food_id)
+                    self.mould.get_reached_food_ids().add(new_food_id)
 
-                # todo: next main diffusion place is food
-                # if neigh == new_idx:
-                #     continue
-
-                food_id = neigh_cell.get_food_id()
-                if food_id not in self.mould.get_reached_food_ids():
-                    self.mould.get_reached_food_ids().append(food_id)
-                    self.mould.update_food_connection(food_id)
-                    # self.mould.update_food_connection(food_id)
         self.mould.update_slime_cell(self.idx, self)
 
     def step(self, lattice, decay):
