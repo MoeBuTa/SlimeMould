@@ -1,12 +1,15 @@
 import random
+
+import networkx as nx
+
 from slime.slime import SlimeCell
 from slime.cell import Cell
 import math
 
-
+from networkx.algorithms import tournament
 LOW_PH_THRESHOLD = 3.5
 LOW_PH_MOULD_MAX_SIZE = 10000
-TARGET_SWITCH_THRESHOLD = 5
+TARGET_SWITCH_THRESHOLD = 10
 
 
 def get_corner_slime_cells(slime_cells, current_direction, capital_slime=None):
@@ -47,6 +50,8 @@ class Mould:
 
         self.avg_health = []
         self.total_num = []
+
+        self.target_switch_count = 0
 
     def remove_slime_cell(self, idx):
         self.city.set_lattice(idx, Cell())
@@ -104,32 +109,25 @@ class Mould:
             if min_dist > dist or min_dist < 0:
                 min_dist = dist
                 min_i = i
-        print((food_id, min_i))
-        self.city.add_food_edge(food_id, min_i)
 
-    @staticmethod
-    def reachable_nodes_precheck(G, start):
-        seen = set()
-        stack = [start]
-        while stack:
-            node = stack.pop()
-            if node not in seen:
-                seen.add(node)
-                neighbors = set(G[node]) - seen
-                stack.extend(neighbors)
-        return seen
+        if not self.city.get_food_graph().has_edge(food_id, min_i):
+                # not nx.has_path(self.city.get_food_graph(), next(iter(self.reached_food_ids)), min_i):
+            print((food_id, min_i))
+            self.city.add_food_edge(food_id, min_i)
 
     def update_target_food(self):
         # set a target food
         remaining_food_ids = set(self.city.get_all_foods().keys()) - self.reached_food_ids
-        min_i = self.capital_slime.find_nearest_food(remaining_food_ids)
-        self.current_target = (min_i, self.city.get_food_position(min_i))
-        # update the connection to the target food from reachable food
-        # self.update_food_connection(min_i)
+        min_i = self.capital_slime.find_nearest_food(remaining_food_ids)[0]
+        if min_i != self.current_target:
+            self.current_target = (min_i, self.city.get_food_position(min_i))
+            # update the connection to the target food from reachable food
+            self.update_food_connection(min_i)
 
     def update_slime(self):
-        if len(self.slime_cells) - self.total_num[-1] < TARGET_SWITCH_THRESHOLD or \
+        if self.target_switch_count > TARGET_SWITCH_THRESHOLD or \
          self.capital_slime.get_reached_food_id() is not None or self.current_target[0] in self.reached_food_ids:
+            self.target_switch_count = 0
             self.setup_capital_slime()
             self.update_target_food()
         slimes = list(self.slime_cells.values())
@@ -146,9 +144,12 @@ class Mould:
         return self.reached_food_ids
 
     def evolve(self):
-        # print(len(self.slime_cells))
+        previous_reached_foods = len(self.reached_food_ids)
         self.total_num.append(len(self.slime_cells))
         slime_idx = list(self.slime_cells.keys())
         for idx in slime_idx:
             self.city.get_lattice()[idx].step(self.city.get_lattice(), self.decay)
+        if len(self.reached_food_ids) == previous_reached_foods:
+            self.target_switch_count += 1
         self.update_slime()
+

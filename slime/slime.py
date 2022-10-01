@@ -4,9 +4,10 @@ import networkx as nx
 import math
 
 DIFFUSION_THRESHOLD = 3.5
-DIFFUSION_DECAY_RATE = 1.5
-MOVING_THRESHOLD = 0.1
-MAX_PH = 5
+DISTANCE_FOR_DIFFUSION_THRESHOLD = 30
+DIFFUSION_DECAY_RATE = 1.26
+MOVING_THRESHOLD = 1
+MAX_PH = 5.5
 MAX_PH_INCREASE_STEP = 0.2
 
 
@@ -55,6 +56,7 @@ class SlimeCell(Cell):
 
         # (food_id, food_idx)
         self.step_food = None
+        self.curr_target = None
 
     def find_nearest_food(self, food_ids):
         min_dist = -1
@@ -66,46 +68,48 @@ class SlimeCell(Cell):
             if min_dist > dist or min_dist < 0:
                 min_dist = dist
                 min_i = i
-        return min_i
+        return min_i, min_dist
 
     def set_reached_food_path(self):
         # target food (food_id, food_idx)
         target_food_id = self.mould.get_current_target()[0]
+        self.curr_target = target_food_id
 
-        # find the nearest food
-        min_i = self.find_nearest_food(food_ids=self.mould.get_reached_food_ids())
+        mould_reached_food_ids = self.mould.get_reached_food_ids()
 
-        # find the shortest path from the nearest food to the target food
-        self.food_path = nx.shortest_path(G=self.city.get_food_graph(), source=min_i, target=target_food_id)
+        if len(mould_reached_food_ids) == 0:
+            self.food_path.append(self.mould.get_current_target()[0])
 
-    def reset_step_food(self):
-        if self.step_food is not None:
-            if len(self.food_path) == 0 and self.step_food == self.mould.get_current_target()[0]:
-                return
-            elif len(self.food_path) != 0 and self.food_path[-1] == self.mould.get_current_target()[0]:
-                return
+        else:
+            # find the nearest food
+            min_i = self.find_nearest_food(food_ids=self.mould.get_reached_food_ids())[0]
 
-        # reset step food
-        # no food path
-        if len(self.food_path) == 0:
-            # no reachable food
-            if len(self.mould.get_reached_food_ids()) == 0:
-                self.food_path.append(self.mould.get_current_target()[0])
-            else:
-                self.set_reached_food_path()
-        elif self.food_path[-1] != self.mould.get_current_target()[0]:
-            self.set_reached_food_path()
-
+            # find the shortest path from the nearest food to the target food
+            self.food_path = nx.shortest_path(G=self.city.get_food_graph(), source=min_i, target=target_food_id)
         step_food_id = self.food_path.pop(0)
         self.step_food = (step_food_id, self.city.get_food_position(step_food_id))
 
+    def reset_step_food(self):
+        # reached target
+        if self.reached_food_id == self.curr_target and self.curr_target == self.mould.get_current_target()[0]:
+            return
+
+        if self.step_food is None or len(self.food_path) == 0:
+            self.set_reached_food_path()
+        else:
+            # reached step food
+            step_food_idx = self.city.get_food_position(self.step_food[0])
+            if math.dist(step_food_idx, self.idx) < 3:
+                step_food_id = self.food_path.pop(0)
+                self.step_food = (step_food_id, self.city.get_food_position(step_food_id))
+
     def sensory(self):
 
-        target_food = self.mould.get_current_target()
-        food_idx = target_food[1]
-
-        # self.reset_step_food()
-        # food_idx = self.step_food[1]
+        # target_food = self.mould.get_current_target()
+        # food_idx = target_food[1]
+        if self.reached_food_id == self.step_food:
+            self.reset_step_food()
+        food_idx = self.step_food[1]
 
         # (-1, -1)
         if food_idx[0] < self.idx[0] and food_idx[1] < self.idx[1]:
@@ -134,7 +138,7 @@ class SlimeCell(Cell):
 
     @staticmethod
     def check_boundary(idx, lattice_shape):
-        if idx[0] > lattice_shape[0] or idx[0] < 0 or idx[1] > lattice_shape[1] or idx[1] < 0:
+        if idx[0] >= lattice_shape[0] or idx[0] <= 0 or idx[1] >= lattice_shape[1] or idx[1] <= 0:
             return False
         return True
 
@@ -160,16 +164,18 @@ class SlimeCell(Cell):
 
                 # todo: next main diffusion place is an empty cell
                 if neigh == new_idx and self.pheromone > MOVING_THRESHOLD:
-                    self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone, decay=decay,
-                                                    is_capital=self.is_capital)
+                    self.mould.update_slime_cell(self.idx, self)
+                    # self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone, decay=decay,
+                    #                                 is_capital=self.is_capital)
                     self.pheromone *= (1 - DIFFUSION_DECAY_RATE * decay)
                     self.is_capital = False
                     continue
 
                 # neighbour cell is a random diffusion cell
-                if self.pheromone > DIFFUSION_THRESHOLD:
+                if self.pheromone > DIFFUSION_THRESHOLD and \
+                        self.find_nearest_food(self.mould.get_reached_food_ids())[1] < DISTANCE_FOR_DIFFUSION_THRESHOLD:
                     self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone/DIFFUSION_DECAY_RATE, decay=decay)
-                    self.pheromone *= (1 - DIFFUSION_DECAY_RATE * decay)
+                    self.pheromone *= (1 - (2 * DIFFUSION_DECAY_RATE * decay))
 
             # neighbor is a slime
             elif neigh_cell.get_cell_type() == 1:
@@ -197,8 +203,8 @@ class SlimeCell(Cell):
             elif neigh_cell.get_cell_type() == 2:
 
                 # eat food
-                self.pheromone = 8
-                self.max_ph = 8
+                self.pheromone = 7
+                self.max_ph = 7
                 self.reached_food_id = neigh_cell.get_food_id()
                 new_food_id = neigh_cell.get_food_id()
                 if new_food_id not in self.mould.get_reached_food_ids():
