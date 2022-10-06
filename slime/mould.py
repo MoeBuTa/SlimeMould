@@ -114,7 +114,7 @@ class Mould:
 
         if not self.city.get_food_graph().has_edge(food_id, min_i):
                 # not nx.has_path(self.city.get_food_graph(), next(iter(self.reached_food_ids)), min_i):
-            print((food_id, min_i))
+            # print((food_id, min_i))
             self.city.add_food_edge(food_id, min_i)
 
     def update_target_food(self):
