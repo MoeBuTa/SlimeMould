@@ -10,16 +10,15 @@ from slime.cell import Cell
 
 
 class City:
-    def __init__(self, city_shape: tuple, foods: pd.DataFrame, mould_shape: tuple, init_mould_coverage: float,
+    def __init__(self, city_shape: tuple, foods: pd.DataFrame, start_loc: tuple, mould_shape: tuple, init_mould_coverage: float,
                  decay: float):
         self.lattice = self.initialise_city(city_shape)
         self.all_foods = {}
         self.all_foods_idx = []
-        self.all_corner_foods = {}
         self.food_positions = {}
         self.food_graph = nx.Graph()
         self.initialise_food(foods)
-        self.mould = self.initialise_slime_mould(self, mould_shape, init_mould_coverage, decay)
+        self.mould = self.initialise_slime_mould(self, start_loc, mould_shape, init_mould_coverage, decay)
 
     @staticmethod
     def initialise_city(city_shape):
@@ -35,16 +34,13 @@ class City:
         for i, station in foods.iterrows():
             idx = (station['x'], station['y'])
             value = station['value']
-            # add corner foods
-            if station['type'] is not 'False':
-                self.all_corner_foods[station['type']] = i
 
             self.food_positions[i] = idx
 
             for x in range(value // 2):
                 for y in range(value // 2):
                     food_idx = (idx[0] - x, idx[1] - y)
-                    food = FoodCell(food_id=i, food_idx=food_idx, food_type=station['type'])
+                    food = FoodCell(food_id=i, food_idx=food_idx)
                     self.lattice[food_idx] = food
 
                     # add food idx
@@ -59,8 +55,8 @@ class City:
         self.food_graph.add_nodes_from(self.food_positions)
 
     @staticmethod
-    def initialise_slime_mould(city, mould_shape, init_mould_coverage, decay):
-        return Mould(city, mould_shape, init_mould_coverage, decay)
+    def initialise_slime_mould(city, start_loc, mould_shape, init_mould_coverage, decay):
+        return Mould(city, start_loc, mould_shape, init_mould_coverage, decay)
 
     @staticmethod
     def foods(lattice):
@@ -75,13 +71,13 @@ class City:
     def draw_foods(self):
         fig, ax = plt.subplots(figsize=(15, 10))
         data = self.foods(self.lattice)
-        dataT = data.T
+        data_t = data.T
 
         for (i, j), z in np.ndenumerate(data):
             if data[i][j] != 0:
                 ax.text(i, j, '{}'.format(int(z)), ha='center', va='center', size=5)
-        ax.imshow(dataT, cmap='YlOrRd', interpolation='none',
-                  origin='lower', extent=[0, dataT.shape[1], 0, dataT.shape[0]])
+        ax.imshow(data_t, cmap='YlOrRd', interpolation='none',
+                  origin='lower', extent=[0, data_t.shape[1], 0, data_t.shape[0]])
         plt.savefig("output/test.png")
         plt.show()
 
@@ -139,9 +135,6 @@ class City:
 
     def get_all_foods(self):
         return self.all_foods
-
-    def get_all_corner_foods(self):
-        return self.all_corner_foods
 
     def get_lattice(self):
         return self.lattice

@@ -3,13 +3,12 @@ from slime.cell import Cell
 
 
 class FoodCell(Cell):
-    def __init__(self, food_id: int, food_idx: tuple, food_type='False'):
+    def __init__(self, food_id: int, food_idx: tuple):
         super().__init__(pheromone=10., cell_type=2)
         self.food_id = food_id
         self.food_idx = food_idx
         self.pheromone = 10.
         self.slime_cells = deque()
-        self.food_type = food_type
 
     def get_all_slime_cells(self):
         return list(self.slime_cells)

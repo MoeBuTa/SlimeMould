@@ -1,15 +1,12 @@
 import random
 
 import networkx as nx
-
 from slime.slime import SlimeCell
 from slime.cell import Cell
 import math
 
-from networkx.algorithms import tournament
-LOW_PH_THRESHOLD = 3.5
-LOW_PH_MOULD_MAX_SIZE = 10000
-TARGET_SWITCH_THRESHOLD = 10
+
+TARGET_SWITCH_THRESHOLD = 5
 
 
 def get_corner_slime_cells(slime_cells, current_direction, capital_slime=None):
@@ -36,7 +33,7 @@ def get_corner_slime_cells(slime_cells, current_direction, capital_slime=None):
 
 
 class Mould:
-    def __init__(self, city, mould_shape: tuple, init_mould_coverage: float, decay: float):
+    def __init__(self, city, start_loc: tuple, mould_shape: tuple, init_mould_coverage: float, decay: float):
         self.city = city
         self.decay = decay
         self.slime_cells = {}
@@ -44,14 +41,13 @@ class Mould:
         self.reached_food_ids = set()
         self.current_target = 0
         self.capital_slime = None
+        self.initialise(start_loc, mould_shape, init_mould_coverage)
 
-        self.corner_foods = self.city.get_all_corner_foods()
-        self.initialise(city, mould_shape, init_mould_coverage)
-
-        self.avg_health = []
+        self.avg_ph = []
         self.total_num = []
 
         self.target_switch_count = 0
+        self.distance_for_diffusion_threshold = 60
 
     def remove_slime_cell(self, idx):
         self.city.set_lattice(idx, Cell())
@@ -64,13 +60,19 @@ class Mould:
         self.slime_cells[idx] = slime
         self.city.set_lattice(idx, slime)
 
-    def initialise(self, city, mould_shape, init_mould_coverage):
-        row = mould_shape[0] // 2
-        col = mould_shape[1] // 2
-        for x in range(len(city.lattice) // 2 - row, len(city.lattice) // 2 + row):
-            for y in range(len(city.lattice[x]) // 2 - col, len(city.lattice[x]) // 2 + col):
+    def initialise(self, start_loc, mould_shape, init_mould_coverage):
+
+        for x in start_loc[0] - mould_shape[0], start_loc[0] + mould_shape[0]:
+            for y in start_loc[1] - mould_shape[1], start_loc[1] + mould_shape[1]:
                 if random.random() < init_mould_coverage and (x, y) not in self.city.get_all_foods_idx():
                     self.slime_cell_generator(idx=(x, y))
+
+        # row = mould_shape[0] // 2
+        # col = mould_shape[1] // 2
+        # for x in range(len(city.lattice) // 2 - row, len(city.lattice) // 2 + row):
+        #     for y in range(len(city.lattice[x]) // 2 - col, len(city.lattice[x]) // 2 + col):
+        #         if random.random() < init_mould_coverage and (x, y) not in self.city.get_all_foods_idx():
+        #             self.slime_cell_generator(idx=(x, y))
         self.setup_capital_slime()
         self.update_target_food()
 
@@ -130,18 +132,15 @@ class Mould:
             self.target_switch_count = 0
             self.setup_capital_slime()
             self.update_target_food()
-        slimes = list(self.slime_cells.values())
-        for slime in slimes:
-            if slime.get_pheromone() < LOW_PH_THRESHOLD and \
-                    math.dist(slime.get_idx(), self.capital_slime.get_idx()) > LOW_PH_MOULD_MAX_SIZE and \
-                    not slime.is_capital:
-                self.remove_slime_cell(slime.get_idx())
 
     def get_current_target(self):
         return self.current_target
 
     def get_reached_food_ids(self):
         return self.reached_food_ids
+
+    def get_avg_ph(self):
+        return self.avg_ph
 
     def evolve(self):
         previous_reached_foods = len(self.reached_food_ids)
@@ -152,4 +151,8 @@ class Mould:
         if len(self.reached_food_ids) == previous_reached_foods:
             self.target_switch_count += 1
         self.update_slime()
+
+
+
+    # def cal_average_health(self):
 
