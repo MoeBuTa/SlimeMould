@@ -9,10 +9,11 @@ import pandas as pd
 from slime.cell import Cell
 
 
-class City:
-    def __init__(self, city_shape: tuple, foods: pd.DataFrame, start_loc: tuple, mould_shape: tuple, init_mould_coverage: float,
+class Dish:
+    def __init__(self, dish_shape: tuple, foods: pd.DataFrame, start_loc: tuple, mould_shape: tuple, init_mould_coverage: float,
                  decay: float):
-        self.lattice = self.initialise_city(city_shape)
+        self.lattice = self.initialise_dish(dish_shape)
+        self.dish_size = dish_shape[0] * dish_shape[1]
         self.all_foods = {}
         self.all_foods_idx = []
         self.food_positions = {}
@@ -21,9 +22,9 @@ class City:
         self.mould = self.initialise_slime_mould(self, start_loc, mould_shape, init_mould_coverage, decay)
 
     @staticmethod
-    def initialise_city(city_shape):
-        lattice = np.empty(city_shape, object)
-        for i in np.ndindex(city_shape):
+    def initialise_dish(dish_shape):
+        lattice = np.empty(dish_shape, object)
+        for i in np.ndindex(dish_shape):
             lattice[i] = Cell()
         return lattice
 
@@ -55,8 +56,8 @@ class City:
         self.food_graph.add_nodes_from(self.food_positions)
 
     @staticmethod
-    def initialise_slime_mould(city, start_loc, mould_shape, init_mould_coverage, decay):
-        return Mould(city, start_loc, mould_shape, init_mould_coverage, decay)
+    def initialise_slime_mould(dish, start_loc, mould_shape, init_mould_coverage, decay):
+        return Mould(dish, start_loc, mould_shape, init_mould_coverage, decay)
 
     @staticmethod
     def foods(lattice):
@@ -144,3 +145,7 @@ class City:
 
     def get_food_graph(self):
         return self.food_graph
+
+    def get_dish_size(self):
+        return self.dish_size
+

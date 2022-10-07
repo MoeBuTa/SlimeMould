@@ -8,6 +8,16 @@ import networkx as nx
 mpl.rcParams['lines.linewidth'] = 2.0
 
 
+def degrees(G):
+    """List of degrees for nodes in `G`.
+
+    G: Graph object
+
+    returns: list of int
+    """
+    return [G.degree(u) for u in G]
+
+
 def all_pairs(nodes):
     """Generates all pairs of nodes."""
     for i, u in enumerate(nodes):
@@ -15,14 +25,16 @@ def all_pairs(nodes):
             if i < j:
                 yield u, v
 
+
 def node_clustering(G, u):
     neighbors = G[u]
     k = len(neighbors)
     if k < 2:
         return np.nan
-        
+
     edges = [G.has_edge(v, w) for v, w in all_pairs(neighbors)]
     return np.mean(edges)
+
 
 def clustering_coefficient(G):
     """Average of the local clustering coefficients.
@@ -58,7 +70,7 @@ def three_frame(world, n_seq, seed=17):
     plt.figure(figsize=(10, 4))
 
     for i, n in enumerate(n_seq):
-        plt.subplot(1, 3, i+1)
+        plt.subplot(1, 3, i + 1)
         world.loop(n)
         world.draw()
 
@@ -151,5 +163,3 @@ def set_palette(*args, **kwds):
     cycler = plt.cycler(color=palette)
     plt.gca().set_prop_cycle(cycler)
     return palette
-
-

@@ -40,7 +40,7 @@ def step_direction(index: int, idx: tuple):
 
 class SlimeCell(Cell):
 
-    def __init__(self, idx: tuple, pheromone: float, mould, city, is_capital):
+    def __init__(self, idx: tuple, pheromone: float, mould, dish, is_capital):
         super().__init__(pheromone=pheromone, cell_type=1)
 
         self.idx = idx
@@ -50,7 +50,7 @@ class SlimeCell(Cell):
         self.is_capital = is_capital
         self.reached_food_id = None
         self.mould = mould
-        self.city = city
+        self.dish = dish
         self.food_path = []
 
         # (food_id, food_idx)
@@ -62,7 +62,7 @@ class SlimeCell(Cell):
         min_i = 0
         # find the nearest food
         for i in food_ids:
-            food_idx = self.city.get_food_position(i)
+            food_idx = self.dish.get_food_position(i)
             dist = math.dist(self.idx, food_idx)
             if min_dist > dist or min_dist < 0:
                 min_dist = dist
@@ -84,9 +84,9 @@ class SlimeCell(Cell):
             min_i = self.find_nearest_food(food_ids=self.mould.get_reached_food_ids())[0]
 
             # find the shortest path from the nearest food to the target food
-            self.food_path = nx.shortest_path(G=self.city.get_food_graph(), source=min_i, target=target_food_id)
+            self.food_path = nx.shortest_path(G=self.dish.get_food_graph(), source=min_i, target=target_food_id)
         step_food_id = self.food_path.pop(0)
-        self.step_food = (step_food_id, self.city.get_food_position(step_food_id))
+        self.step_food = (step_food_id, self.dish.get_food_position(step_food_id))
 
     def reset_step_food(self):
         # reached target
@@ -97,10 +97,10 @@ class SlimeCell(Cell):
             self.set_reached_food_path()
         else:
             # reached step food
-            step_food_idx = self.city.get_food_position(self.step_food[0])
+            step_food_idx = self.dish.get_food_position(self.step_food[0])
             if math.dist(step_food_idx, self.idx) < 3:
                 step_food_id = self.food_path.pop(0)
-                self.step_food = (step_food_id, self.city.get_food_position(step_food_id))
+                self.step_food = (step_food_id, self.dish.get_food_position(step_food_id))
 
     def sensory(self):
 

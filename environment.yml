@@ -2,12 +2,13 @@ name: slime
 dependencies:
     - jupyter
     - pillow
-    - python=3.9.13
+    - python=3.10.6
     - pip
     - pip:
       - numpy
       - matplotlib
       - seaborn
       - pandas
-      - scipy
       - geopandas
+      - networkx
+      - empiricaldist
