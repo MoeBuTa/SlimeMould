@@ -103,9 +103,11 @@ class Mould:
         min_i = 0
         food_idx = self.dish.get_food_position(food_id)
         for i in self.reached_food_ids:
+            if i == food_id:
+                continue
             reachable_food_idx = self.dish.get_food_position(i)
             dist = math.dist(food_idx, reachable_food_idx)
-            if min_dist > dist or min_dist < 0:
+            if min_dist > dist or min_dist == -1:
                 min_dist = dist
                 min_i = i
 

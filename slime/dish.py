@@ -110,7 +110,15 @@ class Dish:
         fig = plt.figure(figsize=(8, 13))
 
         im = self.draw_pheromones()
-        plt.axis('off')
+        plt.axis('tight')
+        plt.axis('image')
+        plt.tick_params(which='both',
+                        bottom=False,
+                        top=False,
+                        left=False,
+                        right=False,
+                        labelbottom=False,
+                        labelleft=False)
 
         def func(frame):
             self.mould.evolve()
