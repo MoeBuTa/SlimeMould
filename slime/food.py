@@ -8,10 +8,6 @@ class FoodCell(Cell):
         self.food_id = food_id
         self.food_idx = food_idx
         self.pheromone = 10.
-        self.slime_cells = deque()
-
-    def get_all_slime_cells(self):
-        return list(self.slime_cells)
 
     def get_food_idx(self):
         return self.food_idx

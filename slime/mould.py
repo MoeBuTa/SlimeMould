@@ -1,35 +1,40 @@
 import random
 
-import networkx as nx
+import numpy as np
+
 from slime.slime import SlimeCell
 from slime.cell import Cell
 import math
 
-
 TARGET_SWITCH_THRESHOLD = 5
 
 
-def get_corner_slime_cells(slime_cells, current_direction, capital_slime=None):
+def get_corner_slime_cells(slime_cells, current_direction, direction_list=None):
     slime_idx = slime_cells.keys()
+    curr_capital_slime = None
     if current_direction == 0:
-        capital_slime = slime_cells[min(slime_idx)]
+        curr_capital_slime = slime_cells[min(slime_idx)]
     elif current_direction == 1:
         max_x = max([x for x, y in slime_idx])
         for x, y in slime_idx:
             if x == max_x:
-                capital_slime = slime_cells[(x, y)]
+                curr_capital_slime = slime_cells[(x, y)]
                 break
     elif current_direction == 2:
         min_y = min([y for x, y in slime_idx])
         for x, y in slime_idx:
             if y == min_y:
-                capital_slime = slime_cells[(x, y)]
+                curr_capital_slime = slime_cells[(x, y)]
                 break
     elif current_direction == 3:
-        capital_slime = slime_cells[max(slime_idx)]
-    if capital_slime.get_reached_food_id() is not None:
-        get_corner_slime_cells(slime_cells, current_direction, capital_slime)
-    return capital_slime
+        curr_capital_slime = slime_cells[max(slime_idx)]
+    if curr_capital_slime.get_reached_food_id() is not None:
+        if direction_list is not None:
+            direction_list.remove(current_direction)
+        else:
+            direction_list = [0, 1, 2, 3]
+        get_corner_slime_cells(slime_cells, random.choice(direction_list))
+    return curr_capital_slime
 
 
 class Mould:
@@ -66,13 +71,6 @@ class Mould:
             for y in start_loc[1] - mould_shape[1], start_loc[1] + mould_shape[1]:
                 if random.random() < init_mould_coverage and (x, y) not in self.city.get_all_foods_idx():
                     self.slime_cell_generator(idx=(x, y))
-
-        # row = mould_shape[0] // 2
-        # col = mould_shape[1] // 2
-        # for x in range(len(city.lattice) // 2 - row, len(city.lattice) // 2 + row):
-        #     for y in range(len(city.lattice[x]) // 2 - col, len(city.lattice[x]) // 2 + col):
-        #         if random.random() < init_mould_coverage and (x, y) not in self.city.get_all_foods_idx():
-        #             self.slime_cell_generator(idx=(x, y))
         self.setup_capital_slime()
         self.update_target_food()
 
@@ -81,11 +79,6 @@ class Mould:
             previous_capital_slime = self.capital_slime
             previous_capital_slime.remove_capital()
             self.update_slime_cell(previous_capital_slime.get_idx(), previous_capital_slime)
-        #
-        #     while self.capital_slime.get_reached_food_id() is not None:
-        #         self.capital_slime = get_corner_slime_cells(self.slime_cells, random.choice([0, 1, 2, 3]))
-        #
-        # else:
         self.capital_slime = get_corner_slime_cells(self.slime_cells, random.choice([0, 1, 2, 3]))
         self.update_slime_cell(self.capital_slime.get_idx(), self.capital_slime)
 
@@ -113,8 +106,6 @@ class Mould:
                 min_i = i
 
         if not self.city.get_food_graph().has_edge(food_id, min_i):
-                # not nx.has_path(self.city.get_food_graph(), next(iter(self.reached_food_ids)), min_i):
-            # print((food_id, min_i))
             self.city.add_food_edge(food_id, min_i)
 
     def update_target_food(self):
@@ -127,11 +118,27 @@ class Mould:
             self.update_food_connection(min_i)
 
     def update_slime(self):
+        # update statistics after each evolution
+        active_slime = [slime.pheromone for slime in list(self.slime_cells.values())
+                        if slime.pheromone > 1]
+        average_pheromone = np.average(active_slime)
+        self.avg_ph.append(average_pheromone)
+        self.total_num.append(len(self.slime_cells))
+
         if self.target_switch_count > TARGET_SWITCH_THRESHOLD or \
-         self.capital_slime.get_reached_food_id() is not None or self.current_target[0] in self.reached_food_ids:
+                self.capital_slime.get_reached_food_id() is not None or self.current_target[0] in self.reached_food_ids:
             self.target_switch_count = 0
             self.setup_capital_slime()
             self.update_target_food()
+
+    def evolve(self):
+        previous_reached_foods = len(self.reached_food_ids)
+        slime_idx = list(self.slime_cells.keys())
+        for idx in slime_idx:
+            self.city.get_lattice()[idx].step(self.city.get_lattice(), self.decay)
+        if len(self.reached_food_ids) == previous_reached_foods:
+            self.target_switch_count += 1
+        self.update_slime()
 
     def get_current_target(self):
         return self.current_target
@@ -142,17 +149,5 @@ class Mould:
     def get_avg_ph(self):
         return self.avg_ph
 
-    def evolve(self):
-        previous_reached_foods = len(self.reached_food_ids)
-        self.total_num.append(len(self.slime_cells))
-        slime_idx = list(self.slime_cells.keys())
-        for idx in slime_idx:
-            self.city.get_lattice()[idx].step(self.city.get_lattice(), self.decay)
-        if len(self.reached_food_ids) == previous_reached_foods:
-            self.target_switch_count += 1
-        self.update_slime()
-
-
-
-    # def cal_average_health(self):
-
+    def get_total_num(self):
+        return self.total_num

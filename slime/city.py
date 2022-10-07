@@ -106,19 +106,10 @@ class City:
         """
         Returns an animation
         """
-        fig = plt.figure(figsize=(10, 15))
+        fig = plt.figure(figsize=(8, 13))
 
         im = self.draw_pheromones()
-
-        # plt.axis("tight")
-        # plt.axis("image")
-        # plt.tick_params(which='both',
-        #                 bottom=False,
-        #                 top=False,
-        #                 left=False,
-        #                 right=False,
-        #                 labelbottom=False,
-        #                 labelleft=False)
+        plt.axis('off')
 
         def func(frame):
             self.mould.evolve()

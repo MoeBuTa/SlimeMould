@@ -1,0 +1,25 @@
+class Agent:
+    def __init__(self, osmid, vision, G, slime_agent_ids):
+        self.osmid = osmid
+        # number of nodes that the agent can see
+        self.vision = vision
+        self.G = G
+        self.slime_agent_ids = slime_agent_ids
+        self.growth = []
+
+    def visible_nodes(self):
+        seen = set()
+        stack = [self.osmid]
+        while stack and self.vision >= 0:
+            node = stack.pop()
+            if node not in seen:
+                self.vision -= 1
+                seen.add(node)
+                neighbors = set(self.G[node].keys()) - seen
+                stack.extend(neighbors)
+        return seen
+
+    def step(self):
+        # agent move to a new node
+        new_nodes = list(self.visible_nodes())
+        self.growth = new_nodes
