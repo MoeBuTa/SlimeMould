@@ -50,6 +50,7 @@ class Mould:
 
         self.avg_ph = []
         self.total_num = []
+        self.total_reached_foods = []
 
         self.target_switch_count = 0
         self.distance_for_diffusion_threshold = 60
@@ -124,6 +125,7 @@ class Mould:
         average_pheromone = np.average(active_slime)
         self.avg_ph.append(average_pheromone)
         self.total_num.append(len(self.slime_cells))
+        self.total_reached_foods.append(len(self.reached_food_ids))
 
         if self.target_switch_count > TARGET_SWITCH_THRESHOLD or \
                 self.capital_slime.get_reached_food_id() is not None or self.current_target[0] in self.reached_food_ids:
@@ -151,3 +153,7 @@ class Mould:
 
     def get_total_num(self):
         return self.total_num
+
+    def get_total_reached_foods(self):
+        return self.total_reached_foods
+
