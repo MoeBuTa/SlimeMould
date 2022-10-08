@@ -8,7 +8,6 @@ import networkx as nx
 mpl.rcParams['lines.linewidth'] = 2.0
 
 
-
 def reachable_nodes(G, start):
     seen = set()
     stack = [start]
@@ -19,10 +18,12 @@ def reachable_nodes(G, start):
             stack.extend(G.neighbors(node))
     return seen
 
+
 def is_connected(G):
     start = next(iter(G))
     reachable = reachable_nodes(G, start)
     return len(reachable) == len(G)
+
 
 def degrees(G):
     """List of degrees for nodes in `G`.

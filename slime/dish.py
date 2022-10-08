@@ -23,6 +23,11 @@ class Dish:
 
     @staticmethod
     def initialise_dish(dish_shape):
+        """
+        initialise the dish lattice
+        :param dish_shape: the shape of the dish lattice
+        :return: dish lattice
+        """
         lattice = np.empty(dish_shape, object)
         for i in np.ndindex(dish_shape):
             lattice[i] = Cell()
@@ -57,35 +62,15 @@ class Dish:
 
     @staticmethod
     def initialise_slime_mould(dish, start_loc, mould_shape, init_mould_coverage, decay):
+        """
+        initialise the mould
+        """
         return Mould(dish, start_loc, mould_shape, init_mould_coverage, decay)
-
-    @staticmethod
-    def foods(lattice):
-        food_list = []
-        foods = np.zeros_like(lattice, dtype=float)
-        for i in np.ndindex(lattice.shape):
-            if lattice[i].get_cell_type() == 2 and lattice[i].get_food_id() not in food_list:
-                foods[i] = lattice[i].get_food_id()
-                food_list.append(lattice[i].get_food_id())
-        return foods
-
-    def draw_foods(self):
-        fig, ax = plt.subplots(figsize=(15, 10))
-        data = self.foods(self.lattice)
-        data_t = data.T
-
-        for (i, j), z in np.ndenumerate(data):
-            if data[i][j] != 0:
-                ax.text(i, j, '{}'.format(int(z)), ha='center', va='center', size=5)
-        ax.imshow(data_t, cmap='YlOrRd', interpolation='none',
-                  origin='lower', extent=[0, data_t.shape[1], 0, data_t.shape[0]])
-        plt.savefig("output/test.png")
-        plt.show()
 
     @staticmethod
     def pheromones(lattice):
         """
-        Returns a lattice of just the pheromones
+        Returns a lattice of just the pheromones to draw the graph
         """
         pheromones = np.zeros_like(lattice, dtype=float)
         for i in np.ndindex(lattice.shape):
@@ -107,7 +92,7 @@ class Dish:
         """
         Returns an animation
         """
-        fig = plt.figure(figsize=(8, 13))
+        fig = plt.figure(figsize=(6.3, 5))
 
         im = self.draw_pheromones()
         plt.axis('tight')

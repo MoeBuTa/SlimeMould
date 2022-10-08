@@ -11,6 +11,11 @@ MAX_PH_INCREASE_STEP = 0.2
 
 
 def get_neighbours(idx):
+    """
+    get the tuple index of the neighbours of the input slime cell
+    :param idx: the tuple index of the given slime cell
+    :return: the tuple index of the neighbours
+    """
     return [
         (idx[0] - 1, idx[1] - 1),  # up   1, left  1
         (idx[0] - 1, idx[1]),  # up   1,
@@ -24,6 +29,12 @@ def get_neighbours(idx):
 
 
 def step_direction(index: int, idx: tuple):
+    """
+    get the next main diffusion step of the slime cell
+    :param index: direction index
+    :param idx: the tuple index of the slime cell
+    :return: the tuple index of the next main diffusion step
+    """
     next_step = {
         0: (0, 0),
         1: (-1, -1),
@@ -58,6 +69,11 @@ class SlimeCell(Cell):
         self.curr_target = None
 
     def find_nearest_food(self, food_ids):
+        """
+        find the nearest food of the slime cell
+        :param food_ids: a list of food ids
+        :return: min_i: the nearest food id, min_dist: distance
+        """
         min_dist = -1
         min_i = 0
         # find the nearest food
@@ -70,6 +86,9 @@ class SlimeCell(Cell):
         return min_i, min_dist
 
     def set_reached_food_path(self):
+        """
+        setup the food path the slime cell will go through
+        """
         # target food (food_id, food_idx)
         target_food_id = self.mould.get_current_target()[0]
         self.curr_target = target_food_id
@@ -83,12 +102,22 @@ class SlimeCell(Cell):
             # find the nearest food
             min_i = self.find_nearest_food(food_ids=self.mould.get_reached_food_ids())[0]
 
-            # find the shortest path from the nearest food to the target food
-            self.food_path = nx.shortest_path(G=self.dish.get_food_graph(), source=min_i, target=target_food_id)
+            nearest_target = self.mould.get_nearest_connected_target()
+            if nearest_target != -1:
+                # find the shortest path from the nearest food to the target food
+                self.food_path = nx.shortest_path(G=self.dish.get_food_graph(), source=min_i,
+                                                  target=nearest_target)
+            else:
+                self.food_path.append(min_i)
+            self.food_path.append(target_food_id)
         step_food_id = self.food_path.pop(0)
         self.step_food = (step_food_id, self.dish.get_food_position(step_food_id))
 
     def reset_step_food(self):
+        """
+        The step food is the food in the food path the slime cell will go next.
+        reset the step food of the current slime cell
+        """
         # reached target
         if self.reached_food_id == self.curr_target and self.curr_target == self.mould.get_current_target()[0]:
             return
@@ -103,7 +132,9 @@ class SlimeCell(Cell):
                 self.step_food = (step_food_id, self.dish.get_food_position(step_food_id))
 
     def sensory(self):
-
+        """
+        set up the next main diffusion direction based on the location of the step food
+        """
         # target_food = self.mould.get_current_target()
         # food_idx = target_food[1]
         if self.reached_food_id == self.step_food:
@@ -137,13 +168,27 @@ class SlimeCell(Cell):
 
     @staticmethod
     def check_boundary(idx, lattice_shape):
+        """
+        check if the neighbour cell reached the boundary of the lattice
+        :param idx: the location of the neighbour cell
+        :param lattice_shape: the shape of the lattice
+        :return: false if reach boundary, else true
+        """
         if idx[0] >= lattice_shape[0] or idx[0] <= 0 or idx[1] >= lattice_shape[1] or idx[1] <= 0:
             return False
         return True
 
     # diffusion
     def diffusion(self, lattice, decay):
-
+        """
+        the slime cell will check all the 8 neighbours and perform diffusion based on conditions
+        1. perform diffusion on the next main diffusion direction first
+        2. perform diffusion on the rest cells if not reach DIFFUSION THRESHOLD
+        3. Take different diffusion strategies when the neighbour cell is empty, slime, food, boundary
+        4. the pheromone of the slime cell will decrease after the diffusion is performed each time.
+        :param lattice: dish lattice
+        :param decay: the rate for decreasing the pheromone of the slime cell
+        """
         new_idx = step_direction(self.direction, self.idx)
         neighbours = get_neighbours(self.idx)
 
@@ -161,7 +206,7 @@ class SlimeCell(Cell):
             # neighbour cell is an empty cell
             if neigh_cell.get_cell_type() == 0:
 
-                # todo: next main diffusion place is an empty cell
+                # next main diffusion place is an empty cell
                 if neigh == new_idx and self.pheromone > MOVING_THRESHOLD:
                     # self.mould.update_slime_cell(new_idx, self)
                     self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone, decay=decay,
@@ -180,7 +225,7 @@ class SlimeCell(Cell):
             # neighbor is a slime
             elif neigh_cell.get_cell_type() == 1:
 
-                # todo: next main diffusion place is a slime cell
+                # next main diffusion place is a slime cell
                 if neigh == new_idx and self.pheromone > MOVING_THRESHOLD:
                     neigh_increase_ph = neigh_cell.pheromone + self.pheromone / DIFFUSION_DECAY_RATE
                     if neigh_increase_ph > neigh_cell.max_ph:
@@ -215,10 +260,9 @@ class SlimeCell(Cell):
 
     def step(self, lattice, decay):
         """
-        * The sensory stage: all slime cells adjust their direction based on the pheromones
-        * The diffusion stage: all pheromones undergo diffusion
+        The sensory stage: all slime cells adjust their direction based on the food
+        The diffusion stage: all pheromones undergo diffusion
         """
-        # alive after diffusion
         self.sensory()
         self.diffusion(lattice, decay)
 
