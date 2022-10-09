@@ -56,12 +56,11 @@ class Mould:
         self.avg_ph = []
         self.total_num = []
         self.total_active_num = []
-        self.total_deactive_num = []
+        self.total_inactive_num = []
         self.total_reached_foods = []
         self.coverage_ratio = []
 
         self.target_switch_count = 0
-        self.distance_for_diffusion_threshold = 60
 
     def remove_slime_cell(self, idx):
         """
@@ -180,7 +179,7 @@ class Mould:
         self.avg_ph.append(average_pheromone)
         self.total_num.append(len(self.slime_cells))
         self.total_active_num.append(len(active_slime))
-        self.total_deactive_num.append(len(self.slime_cells) - len(active_slime))
+        self.total_inactive_num.append(len(self.slime_cells) - len(active_slime))
         self.total_reached_foods.append(len(self.reached_food_ids))
         self.coverage_ratio.append(len(self.slime_cells)/self.dish.get_dish_size())
 
@@ -218,8 +217,8 @@ class Mould:
     def get_total_active_num(self):
         return self.total_active_num
 
-    def get_total_deactive_num(self):
-        return self.total_deactive_num
+    def get_total_inactive_num(self):
+        return self.total_inactive_num
 
     def get_coverage_ratio(self):
         return self.coverage_ratio

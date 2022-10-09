@@ -5,6 +5,7 @@ import math
 
 DIFFUSION_THRESHOLD = 3.5
 DIFFUSION_DECAY_RATE = 1.26
+DISTANCE_FOR_DIFFUSION_THRESHOLD = 55
 MOVING_THRESHOLD = 1
 MAX_PH = 5.5
 MAX_PH_INCREASE_STEP = 0.2
@@ -218,7 +219,7 @@ class SlimeCell(Cell):
 
                 # neighbour cell is a random diffusion cell
                 if self.pheromone > DIFFUSION_THRESHOLD and \
-                        self.find_nearest_food(self.mould.get_reached_food_ids())[1] < self.mould.distance_for_diffusion_threshold:
+                        self.find_nearest_food(self.mould.get_reached_food_ids())[1] < DISTANCE_FOR_DIFFUSION_THRESHOLD:
                     self.mould.slime_cell_generator(idx=neigh, pheromone=self.pheromone/DIFFUSION_DECAY_RATE, decay=decay)
                     self.pheromone *= (1 - (2 * DIFFUSION_DECAY_RATE * decay))
 
