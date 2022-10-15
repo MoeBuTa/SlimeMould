@@ -7,27 +7,10 @@
     - `conda activate slime`
 4. Updating the environment
     - `conda env update --name mtdsimtime --file environment.yml --prune`
-6. Still developing.....
 
 
-## Objective
-Centred around a model that you will design, implement, explore and analyse. 
-
-## Assessment
- 
-The Project Report (30%) must be submitted on LMS by COB on 28.10.22. It consists of 
- - A (maximum) 5-page report (not including figures), which should 
- - Outline the model details and place it in context of existing approaches, 
- - Give a qualitative discussion (including link to any simulations) and quantitative summary of the results. 
- 
-The Jupyter Notebook (10%) is also to be submitted on LMS by COB on 28.10.22. It should 
- - contain all code used to do the Project.
- 
-The Project Report and the Jupyter Notebook should be well-integrated and complement each other where appropriate.
 
 ## Background
-
-you’ll need to start small and build up your understanding of the system and your model by increasing the complexity. 
 
 Slime mould, Physarum polycephalum, works like this: Single-celled organisms grow when fed, creating a network of nutrient-channeling tubes. Nature and evolution have spent millennia perfecting this living complex system, which, if given enough time, will optimise its network structure to transfer nutrients efficiently throughout the entire organism. This is done in two stages: first forage for food sources by growing outward, then adaptively refine the network and respond to the environment by killing off inefficient branches. 
 
@@ -44,13 +27,35 @@ In 2010 a team of researchers arranged pieces of oatmeal on a petri dish to repr
  - local interaction 
  - as the driver and creator of a superorganisms’ communication network, 
  - and many of the other themes
- 
-## Tasks:
 
-Your task is to 
+
+## Physarum
+
+- large, single-celled amoeboid organism
+- forage for patchily distributed food sources
+- initially explores with a relatively contiguous foraging margin - maximize the area searched
+- linking the discovered food sources through
+   - direct connections, or
+   - additional intermediate junctions (reduce the overall length of the connecting network)
+   - formation of occasional cross-links (improve overall transport efficiency and resilience)
+- Growing is influence by
+   - characteristics of the substrate
+   - physical barriers (constraint)
+   - light regime
+- find the shortest path through
+   - a maze
+   - connect different arrays of food sources in an efficient manner with
+      - low total length (TL)
+      - short average minimum distance (MD) between pairs of food sources (FSs)
+      - high degree of fault tolerance (FT) to accidental disconnection
+- Once these have been located, the many branches it has sent out die back,
+- leaving only the most efficient route between food source nodes.
+- slime has mapped the optimum transport networks of numerous cities, as well as the Silk Road and a full global trade route.
+
+
+## Tasks:
  - create a bio-inspired model of the slime in-silico and 
  - simulate its evolution over a ‘city’ of nutrient loaded ‘towns’ 
  - Optimising the resulting network. 
- - The ‘city’ and ‘towns’ in the underlying network you set your slime mould loose on is up to you. 
  
 
