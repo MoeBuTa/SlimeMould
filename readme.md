@@ -6,7 +6,7 @@
 3. Activating the environment
     - `conda activate slime`
 4. Updating the environment
-    - `conda env update --name mtdsimtime --file environment.yml --prune`
+    - `conda env update --name slime --file environment.yml --prune`
 
 
 
